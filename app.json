@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "colomo",
-    "slug": "colomo",
+    "name": "cafe",
+    "slug": "cafe",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.colomo"
     },
     "web": {
       "bundler": "metro",

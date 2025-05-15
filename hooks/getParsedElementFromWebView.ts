@@ -13,7 +13,7 @@ import { WebView } from 'react-native-webview';
  * @param isTranslated 
  */
 export function getParsedElementFromWebView(
-    webViewRef: React.RefObject<WebView>,
+    webViewRef: React.RefObject<WebView | null>,
     firstTrsnslate: boolean,
     isTranslated: boolean
 ) {
