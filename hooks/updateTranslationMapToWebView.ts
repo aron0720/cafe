@@ -2,6 +2,7 @@ import { WebView } from 'react-native-webview';
 
 /**
  * webView로 번역된 결과인 translationMap을 반영하는 함수
+ * translationMap의 길이가 0이면 즉시 종료
  * 
  * @param translationMap
  * @param webViewRef
@@ -10,6 +11,10 @@ export function updateTranslationMapToWebView(
     translationMap: { original: string, translated: string }[],
     webViewRef: React.RefObject<WebView | null>,
 ) {
+
+    // translationMap이 비어있으면 함수 종료
+    if (translationMap.length === 0) return;
+
     // 번역된 텍스트를 WebView에 주입할 JavaScript 코드 생성
     const translationScript = `
         (function() {

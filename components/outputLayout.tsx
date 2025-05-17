@@ -29,11 +29,11 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     // 원본, 번역 대응 표를 저장하는 state
     const [translationMap, setTranslationMap] = useState<{ original: string, translated: string }[]>([]);
 
-    // 번역 API가 완전히 종료되었는지를 확인하는 state
-    const [isTrnaslationAPICompleted, setIsTranslationAPICompleted] = useState(true);
+    // 원본, 번역 대응 표의 저장소가 될 state
+    const [translationMapStorage, setTranslationMapStorage] = useState<{ original: string, translated: string }[]>([]);
 
-    // 현재 webView의 translationMap과 javaScript injection에 따른 변역 작업이 완료되었나 저장하는 변수
-    let isTranslationDone = true;
+    // 번역 API가 완전히 종료되었는지를 확인하는 state
+    const [isTranslationAPICompleted, setIsTranslationAPICompleted] = useState(true);
 
     function openWebView() {
         setWebViewLoading(true); // 웹뷰 로딩 상태 설정
@@ -77,31 +77,62 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     // translationMap 상태 변경 시 WebView에 번역된 텍스트 업데이트
     useEffect(() => {
 
-        console.log("isTranslationDone", isTranslationDone, "translationMap", translationMap);
-
-        // 번역이 완료되지 않은 경우 return
-        if (!isTranslationDone) return;
-
-        // 웹뷰의 처리를 완료되지 않음으로 설정
-        isTranslationDone = false;
-
         // 가장 마지막의 translationMap element는 아직 갱신이 되지 않았을 수 있기 때문에, 맨 마지막의 원소는 제외하고 전달.
         // 단, 이때, 마지막의 원소를 제외했을 때 비었다면 return
         const modifiedTranslationMap = translationMap.slice(0, -1);
-        if (modifiedTranslationMap.length == 0) return;
-
         if (webViewRef.current){
             updateTranslationMapToWebView(modifiedTranslationMap, webViewRef);
         }
     }, [translationMap]);
 
+    // translationAPICompleted 상태가 변경되면 최종적으로 번역된 결과를 WebView에 업데이트
+    // 이 useEffect가 반드시 필요한 이유는, translationMap useEffect에서 항상 맨 마지막 원소를 제외하고 webView에 업데이트 하기 때문에, 맨 마지막 원소를 반영해 줄 필요가 있기 때문
+    useEffect(() => {
+        console.log("translationAPICompleted 상태 변경:", isTranslationAPICompleted, "번역된 결과:", translationMap);
+
+        if (isTranslationAPICompleted) {
+            updateTranslationMapToWebView(translationMap, webViewRef);
+        }
+
+        // translationMap을 storage에 저장
+        if (translationMap.length > 0) {
+            setTranslationMapStorage((prev) => [...prev, ...translationMap]);
+        }
+    }, [isTranslationAPICompleted]);
+
     // parsedElements 상태가 변경될 때 마다 API를 호출해 번역 저장
-    // parsedElements의 주요 변경은 "창 열기" 버튼 클릭 시 발생
+    // parsedElements의 주요 변경은 "클릭하여 시작하기" 버튼 클릭 시 webView의 onLoadEnd에서 발생
     useEffect(() => {
 
-        // parsedElements가 비어있지 않은 경우에만 API 호출
+        // parsedElements 중 이미 storage에 저장된 것들은 미리 해당 사항을 storage에서 추출해 translationMap에 저장
+        const filteredParsedElements: { index: string, text: string }[] = [];
+        const updatedTranslationMap: { original: string, translated: string }[] = [];
+
+        parsedElements.forEach((parsedElement) => {
+            const existingItem = translationMapStorage.find(
+                (item) => item.original === parsedElement.text
+            );
+
+            if (existingItem) {
+
+                // 중복된 항목은 translationMap에 반영
+                updatedTranslationMap.push({
+                    original: parsedElement.text,
+                    translated: existingItem.translated,
+                });
+            } else {
+
+                // 중복되지 않은 항목은 filteredParsedElements에 추가
+                filteredParsedElements.push(parsedElement);
+            }
+        });
+
+        // translationMap에 중복된 항목 반영
+        setTranslationMap(updatedTranslationMap);
+
+        // filteredParsedElements가 비어있지 않은 경우에만 API 호출
         if (parsedElements.length > 0) {
-            translateText(apiKey, prompt, additionalPrompt, parsedElements, setTranslationMap)
+            translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMap, setTranslationMap, setIsTranslationAPICompleted);
         }
     }, [parsedElements]);
 
@@ -177,11 +208,11 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
                     // Translation Done이라는 메시지가 오면 번역 완료 상태 업데이트 (updateTranslationMapToWebView.ts)
                     if (event.nativeEvent.data === "Translation Done") {
-                        isTranslationDone = true;
                         console.log("✅ 번역 완료");
                     }
                 }}
                 onLoadEnd={() => {
+                    setIsTranslationAPICompleted(false);
                     getParsedElementFromWebView(webViewRef, firstTrsnslate, isTranslated);
                     console.log("✅ WebView 로드 완료");
                 }}
