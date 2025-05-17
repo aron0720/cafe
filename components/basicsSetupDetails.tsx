@@ -11,7 +11,7 @@ export default function BasicsSetupDetails({ apiKey, setApiKey }: BasicsSetupDet
   const {width, height} = Dimensions.get('window'); // 창 크기 가져오기 
 
   return (
-    <View style={{ padding: 10, margin: 5, backgroundColor: '#eee', borderRadius: 8, width: width * 0.75 }}>
+    <View style={{ padding: 10, margin: 5, backgroundColor: '#eee', borderRadius: 8, width: width }}>
       
       <TouchableOpacity onPress={() => setOpen(!open)} style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5 }}>
         <Text style={{ fontSize: 16 }}>{open ? '▼ 기본 설정' : '▶ 기본 설정'}</Text>

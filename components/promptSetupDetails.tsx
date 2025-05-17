@@ -13,7 +13,7 @@ export default function PromptSetupDetails({ prompt, setPrompt, additionalPrompt
   const {width, height} = Dimensions.get('window'); // 화면 크기 가져오기
 
   return (
-    <View style={{ padding: 10, margin: 5, backgroundColor: '#eee', borderRadius: 8, width: width * 0.75 }}>
+    <View style={{ padding: 10, margin: 5, backgroundColor: '#eee', borderRadius: 8, width: width }}>
       
       <TouchableOpacity onPress={() => setOpen(!open)} style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5 }}>
         <Text style={{ fontSize: 16 }}>{open ? '▼ 프롬프트 설정' : '▶ 프롬프트 설정'}</Text>
