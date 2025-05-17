@@ -2,6 +2,9 @@
   "expo": {
     "name": "cafe",
     "slug": "cafe",
+    "extra": {
+      "API_KEY": ""
+    },
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",

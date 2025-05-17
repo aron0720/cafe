@@ -163,7 +163,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                         setParsedElements([]);
                         setTranslationMap([]);
                         const data = JSON.parse(event.nativeEvent.data);
-                        console.log("📩 onMessage 데이터:", event.nativeEvent.data);
+                        //console.log("📩 onMessage 데이터:", event.nativeEvent.data);
                         
                         // 만약 data가 비어있거나 original, translated 형식이라면 아래 코드 스킵
                         if (data.length == 0 || (data[0].hasOwnProperty('original') && data[0].hasOwnProperty('translated'))) {

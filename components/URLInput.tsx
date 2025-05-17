@@ -37,6 +37,7 @@ export default function URLInput({ url, setUrl }: URLInputProps) {
             </TouchableOpacity>
             <TouchableOpacity
                 style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5, marginTop: 10, marginLeft: 5 }} 
+                onPress={() => router.push('/setting')}
             >
                 <Text style={{ fontSize: 16, textAlign: 'center' }}>설정</Text>
             </TouchableOpacity>
