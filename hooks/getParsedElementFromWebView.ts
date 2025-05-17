@@ -17,7 +17,7 @@ export function getParsedElementFromWebView(
     firstTrsnslate: boolean,
     isTranslated: boolean
 ) {
-    if (webViewRef.current && firstTrsnslate && !isTranslated) {
+    if (webViewRef.current) {
         (webViewRef.current as any).injectJavaScript(`
             (function () {
                 let translationId = 0; // 고유 ID를 위한 카운터

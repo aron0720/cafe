@@ -131,9 +131,8 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         setTranslationMap(updatedTranslationMap);
 
         // filteredParsedElements가 비어있지 않은 경우에만 API 호출
-        if (parsedElements.length > 0) {
+        if (parsedElements.length > 0) 
             translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMap, setTranslationMap, setIsTranslationAPICompleted);
-        }
     }, [parsedElements]);
 
     useEffect(() => { 
@@ -154,6 +153,19 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         >       
                 <Text style={{ fontSize: 16, textAlign: 'center' }}>클릭하여 시작하기</Text>
         </TouchableOpacity> }
+        
+        {/* 새로고침 버튼 */}
+        {open && <TouchableOpacity
+            onPress={() => {
+                setParsedElements([]);
+                setTranslationMap([]);
+                if (webViewRef.current) webViewRef.current.reload();
+            }}
+            style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5, marginTop: 10 }}
+        >
+            <Text style={{ fontSize: 16, textAlign: 'center' }}>새로고침</Text>
+        </TouchableOpacity>}
+
 
         {false && (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
