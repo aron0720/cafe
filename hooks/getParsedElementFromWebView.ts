@@ -17,7 +17,7 @@ export function getParsedElementFromWebView(
     firstTrsnslate: boolean,
     isTranslated: boolean
 ) {
-    if (webViewRef.current && firstTrsnslate && !isTranslated) {
+    if (webViewRef.current) {
         (webViewRef.current as any).injectJavaScript(`
             (function () {
                 let translationId = 0; // 고유 ID를 위한 카운터
@@ -62,7 +62,7 @@ export function getParsedElementFromWebView(
                 }
 
                 // React Native로 데이터 전송
-                window.ReactNativeWebView.postMessage(JSON.stringify(result));
+                window.ReactNativeWebView.postMessage("Webpage Elements:" + JSON.stringify(result));
             })();
         `);
     }

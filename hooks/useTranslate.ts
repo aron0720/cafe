@@ -24,7 +24,9 @@ export async function translateText(
     prompt: string, 
     additionalPrompt: string, 
     text: { index: string, text: string }[],
+    translationMap: { original: string, translated: string }[],
     setTranslationMap: React.Dispatch<React.SetStateAction<{ original: string, translated: string }[]>>,
+    setIsTranslationAPICompleted: React.Dispatch<React.SetStateAction<boolean>>
 ) {
 
     //console.log("translateText 함수 호출됨:", { apikey, prompt, additionalPrompt, text });
@@ -96,11 +98,14 @@ export async function translateText(
             });
     
             // combinedText를 translationMap에 반영
-            parseListAndSetTranslatedText(combinedText, text, setTranslationMap);
+            parseListAndSetTranslatedText(combinedText, text, translationMap, setTranslationMap);
         } catch (error) {
             console.error("JSON 파싱 오류:", error, "디코딩된 텍스트:", decodedText);
         }
     }
+
+    // API 호출이 완료되었음을 알림
+    setIsTranslationAPICompleted(true);
 }
 
 /**
@@ -114,14 +119,15 @@ export async function translateText(
 function parseListAndSetTranslatedText(
     combinedText: string, 
     text: { index: string, text: string }[], 
+    translationMap: { original: string, translated: string }[],
     setTranslationMap: React.Dispatch<React.SetStateAction<{ original: string, translated: string }[]>>
 ) {
 
     // combinedText를 줄 단위로 나누고, 각 줄을 "||"로 나누어 원래의 텍스트와 매칭
     const lines = combinedText.split('\n').filter(line => line.trim() !== '');
-    const translationMap: { original: string, translated: string }[] = [];
+    const tempTranslationMap: { original: string, translated: string }[] = [];
 
-    // 각 줄을 순서대로 original의 text와 translated로 나누어 translationMap에 추가
+    // 각 줄을 순서대로 original의 text와 translated로 나누어 tempTranslationMap에 추가
     lines.forEach((line, index) => {
         const parts = line.split('||');
         if (parts.length === 2) {
@@ -130,11 +136,14 @@ function parseListAndSetTranslatedText(
             const originalText = text[index]?.text.trim(); 
             const translatedText = parts[1].trim();
             if (originalText) {
-                translationMap.push({ original: originalText, translated: translatedText });
+                tempTranslationMap.push({ original: originalText, translated: translatedText });
             }
         }
     });
 
-    // translationMap 상태 업데이트
-    setTranslationMap(translationMap); 
+    // 이미 translationMap에 있는 요소를 제외한 후, 상태 업데이트
+    const updatedTranslationMap = translationMap.filter(item => 
+        !tempTranslationMap.some(tempItem => item.original === tempItem.original)
+    );
+    setTranslationMap([...updatedTranslationMap, ...tempTranslationMap]);
 }
