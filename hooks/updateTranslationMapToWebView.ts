@@ -24,10 +24,10 @@ export function updateTranslationMapToWebView(
             elements.forEach(el => {
                 let html = el.innerHTML;
                 translationMap.forEach(item => {
-                    html = html.replaceAll(item.original, item.translated);
+                    // html = html.replaceAll(item.original, item.translated);
 
-                    // const regex = new RegExp(\`(?<![\\w<>])\${item.original}(?![\\w<>])\`, 'g');
-                    // html = html.replace(regex, item.translated);
+                    const regex = new RegExp(\`(?<![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\${item.original}(?![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\`, 'gu');
+                    html = html.replace(regex, item.translated);
                 });
                 el.innerHTML = html;
             });

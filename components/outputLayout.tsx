@@ -216,12 +216,16 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                         } catch (e) {
                             console.warn("❌ JSON 파싱 오류:", e);
                         }
+                        return
                     }
 
                     // Translation Done이라는 메시지가 오면 번역 완료 상태 업데이트 (updateTranslationMapToWebView.ts)
                     if (event.nativeEvent.data === "Translation Done") {
                         console.log("✅ 번역 완료");
+                        return
                     }
+
+                    console.log("event.nativeEvent.data:", event.nativeEvent.data);
                 }}
                 onLoadEnd={() => {
                     setIsTranslationAPICompleted(false);
