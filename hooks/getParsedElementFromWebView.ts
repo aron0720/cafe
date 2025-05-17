@@ -8,19 +8,34 @@ import { WebView } from 'react-native-webview';
  * const data = JSON.parse(event.nativeEvent.data);               (outputLayout.tsx)
  * setParsedElements(data);                                       (outputLayout.tsx)
  * 
- * @param webViewRef 
- * @param firstTrsnslate 
- * @param isTranslated 
+ * @param webViewRef
  */
 export function getParsedElementFromWebView(
-    webViewRef: React.RefObject<WebView | null>,
-    firstTrsnslate: boolean,
-    isTranslated: boolean
+    webViewRef: React.RefObject<WebView | null>
 ) {
     if (webViewRef.current) {
         (webViewRef.current as any).injectJavaScript(`
             (function () {
-                let translationId = 0; // 고유 ID를 위한 카운터
+                function getXPath(element) {
+                    if (element.id) {
+                        return 'id("' + element.id + '")';
+                    }
+                    if (element === document.body) {
+                        return '/html/body';
+                    }
+
+                    let ix = 0;
+                    const siblings = element.parentNode ? element.parentNode.childNodes : [];
+                    for (let i = 0; i < siblings.length; i++) {
+                        const sibling = siblings[i];
+                        if (sibling === element) {
+                            return getXPath(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (ix + 1) + ']';
+                        }
+                        if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+                            ix++;
+                        }
+                    }
+                }
 
                 const walker = document.createTreeWalker(
                     document.body,
@@ -50,14 +65,11 @@ export function getParsedElementFromWebView(
 
                     if (text) {
                         const parent = textNode.parentElement;
-                        const id = 'translation-' + translationId++; // 고유 ID 생성
+                        const xpath = parent ? getXPath(parent) : null; // XPath 생성
 
-                        // 부모 요소에 고유 ID 추가
-                        if (parent) {
-                            parent.setAttribute('data-translation-id', id);
+                        if (xpath) {
+                            result.push({ xpath, text }); // XPath와 텍스트를 결과에 추가
                         }
-
-                        result.push({ id, text }); // ID와 텍스트를 결과에 추가
                     }
                 }
 

@@ -21,7 +21,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     const {width, height} = Dimensions.get('window'); // 화면 크기 가져오기
     const [isTranslated, setIsTranslated] = useState(false); // 번역 상태
     const webViewRef = useRef<WebView>(null); // 웹뷰 참조
-    const [parsedElements, setParsedElements] = useState<{ index: string, text: string }[]>([]);
+    const [parsedElements, setParsedElements] = useState<{ xpath: string, text: string }[]>([]);
     const [firstTrsnslate, setFirstTranslate] = useState(true); // 첫 번째 번역 상태
     const [webViewLoading, setWebViewLoading] = useState(false); // 웹뷰 열기 상태
     const [navstate, setNavState] = useState<WebViewNavigation | null>(null); // 웹뷰 내비게이션 상태
@@ -82,7 +82,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         // 단, 이때, 마지막의 원소를 제외했을 때 비었다면 return
         const modifiedTranslationMap = translationMap.slice(0, -1);
         if (webViewRef.current){
-            updateTranslationMapToWebView(modifiedTranslationMap, webViewRef);
+            updateTranslationMapToWebView(modifiedTranslationMap, webViewRef, parsedElements);
         }
         else console.log("webViewRef.current가 null입니다.");
     }, [translationMap]);
@@ -93,7 +93,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         console.log("translationAPICompleted 상태 변경:", isTranslationAPICompleted, "번역된 결과:", translationMap);
 
         if (isTranslationAPICompleted) {
-            updateTranslationMapToWebView(translationMap, webViewRef);
+            updateTranslationMapToWebView(translationMap, webViewRef, parsedElements);
         }
 
         // translationMap을 storage에 저장
@@ -106,28 +106,36 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     // parsedElements의 주요 변경은 "클릭하여 시작하기" 버튼 클릭 시 webView의 onLoadEnd에서 발생
     useEffect(() => {
 
-        // parsedElements 중 이미 storage에 저장된 것들은 미리 해당 사항을 storage에서 추출해 translationMap에 저장
-        const filteredParsedElements: { index: string, text: string }[] = [];
-        const translationMapAlreadyStored: { original: string, translated: string }[] = [];
+        if (parsedElements.length == 0) return; // parsedElements가 비어있으면 처리 중지
 
-        parsedElements.forEach((parsedElement) => {
-            const existingItem = translationMapStorage.find(
-                (item) => item.original === parsedElement.text
-            );
+        // parsedElements를 filtering해서 만약 해당 요소가 이미 stored되어 있다면, { original, translated } 형태로 translationMapAlreadyStored에 저장
+        // 아니라면, { xpath, text } 형태로 filteredParsedElements에 저장
+        // 이미 저장된 요소를 확인하기 위한 맵 생성
+        const storedMap = new Map(
+            translationMapStorage.map((item) => [item.original, item.translated])
+        );
 
-            if (existingItem) {
+        // parsedElements를 필터링
+        const translationMapAlreadyStored: { original: string; translated: string }[] = [];
+        const filteredParsedElements: { xpath: string; text: string }[] = [];
 
-                // 중복된 항목은 translationMap에 반영
+        parsedElements.forEach((element) => {
+            if (storedMap.has(element.text)) {
+
+                // 이미 저장된 요소는 translationMapAlreadyStored에 추가
                 translationMapAlreadyStored.push({
-                    original: parsedElement.text,
-                    translated: existingItem.translated,
+                    original: element.text,
+                    translated: storedMap.get(element.text) || "",
                 });
             } else {
 
-                // 중복되지 않은 항목은 filteredParsedElements에 추가
-                filteredParsedElements.push(parsedElement);
+                // 새 요소는 filteredParsedElements에 추가
+                filteredParsedElements.push(element);
             }
         });
+
+        console.log("✅ 이미 저장된 요소:", translationMapAlreadyStored);
+        console.log("✅ 새로 번역할 요소:", filteredParsedElements);
 
         // filteredParsedElements가 비어있지 않은 경우에만 API 호출
         if (parsedElements.length > 0) 
@@ -224,11 +232,22 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                         return
                     }
 
+                    // HTML:로 시작하는 경우, HTML 문서 전체를 가져오기 위한 메시지
+                    if (event.nativeEvent.data.startsWith("HTML:")) {
+                        const html = event.nativeEvent.data.replace("HTML:", "");
+                        console.log("HTML 문서:", html);
+                        return
+                    }
+
                     console.log("event.nativeEvent.data:", event.nativeEvent.data);
                 }}
                 onLoadEnd={() => {
+
+                    // 로드가 끝나면 html 문서 전체를 가져오기
+                    webViewRef.current?.injectJavaScript(`window.ReactNativeWebView.postMessage("HTML:" + document.documentElement.outerHTML);`);
+
                     setIsTranslationAPICompleted(false);
-                    getParsedElementFromWebView(webViewRef, firstTrsnslate, isTranslated);
+                    getParsedElementFromWebView(webViewRef);
                 }}
                 onError={(error) => {
                     console.error("WebView error:", error);

@@ -6,10 +6,12 @@ import { WebView } from 'react-native-webview';
  * 
  * @param translationMap
  * @param webViewRef
+ * @param parsedElements
  */
 export function updateTranslationMapToWebView(
     translationMap: { original: string, translated: string }[],
     webViewRef: React.RefObject<WebView | null>,
+    parsedElements: { xpath: string, text: string }[]
 ) {
 
     // translationMap이 비어있으면 함수 종료
@@ -22,17 +24,24 @@ export function updateTranslationMapToWebView(
     const translationScript = `
         (function() {
             const translationMap = ${JSON.stringify(translationMap)};
+            const parsedElements = ${JSON.stringify(parsedElements)};
 
-            const elements = document.querySelectorAll('[data-translation-id]');
-            elements.forEach(el => {
-                let html = el.innerHTML;
-                translationMap.forEach(item => {
-                    html = html.replaceAll(item.original, item.translated);
+            // xpath를 기반으로 DOM 요소를 찾는 함수
+            function getElementByXpath(xpath) {
+                return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            }
 
-                    // const regex = new RegExp(\`(?<![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\${item.original}(?![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\`, 'gu');
-                    // html = html.replace(regex, item.translated);
-                });
-                el.innerHTML = html;
+            parsedElements.forEach(parsed => {
+                const element = getElementByXpath(parsed.xpath);
+                if (element) {
+                    let html = element.innerHTML;
+                    translationMap.forEach(item => {
+                        if (parsed.text.includes(item.original)) {
+                            html = html.replaceAll(item.original, item.translated);
+                        }
+                    });
+                    element.innerHTML = html;
+                }
             });
 
             // 번역 완료 상태 업데이트

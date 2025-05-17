@@ -23,7 +23,7 @@ export async function translateText(
     apikey: string, 
     prompt: string, 
     additionalPrompt: string, 
-    text: { index: string, text: string }[],
+    text: { xpath: string, text: string }[],
     translationMapAlreadyStored: { original: string, translated: string }[],
     setTranslationMap: React.Dispatch<React.SetStateAction<{ original: string, translated: string }[]>>,
     setIsTranslationAPICompleted: React.Dispatch<React.SetStateAction<boolean>>
@@ -118,7 +118,7 @@ export async function translateText(
  */
 function parseListAndSetTranslatedText(
     combinedText: string, 
-    text: { index: string, text: string }[], 
+    text: { xpath: string, text: string }[], 
     translationMapAlreadyStored: { original: string, translated: string }[],
     setTranslationMap: React.Dispatch<React.SetStateAction<{ original: string, translated: string }[]>>
 ) {
