@@ -62,7 +62,7 @@ export function getParsedElementFromWebView(
                 }
 
                 // React Native로 데이터 전송
-                window.ReactNativeWebView.postMessage(JSON.stringify(result));
+                window.ReactNativeWebView.postMessage("Webpage Elements:" + JSON.stringify(result));
             })();
         `);
     }

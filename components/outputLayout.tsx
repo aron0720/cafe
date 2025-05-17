@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions, BackHandler } from 'react-nat
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { getParsedElementFromWebView } from '@/hooks/getParsedElementFromWebView';
 import { translateText } from '@/hooks/useTranslate';
+import { updateTranslationMapToWebView } from '@/hooks/updateTranslationMapToWebView';
 
 interface outputLayoutProps {
     apiKey: string;
@@ -28,6 +29,12 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     // 원본, 번역 대응 표를 저장하는 state
     const [translationMap, setTranslationMap] = useState<{ original: string, translated: string }[]>([]);
 
+    // 번역 API가 완전히 종료되었는지를 확인하는 state
+    const [isTrnaslationAPICompleted, setIsTranslationAPICompleted] = useState(true);
+
+    // 현재 webView의 translationMap과 javaScript injection에 따른 변역 작업이 완료되었나 저장하는 변수
+    let isTranslationDone = true;
+
     function openWebView() {
         setWebViewLoading(true); // 웹뷰 로딩 상태 설정
         setIsTranslated(false); // 번역 상태 초기화
@@ -36,7 +43,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     } // 버튼 클릭 시 웹뷰 열기(닫혀있다면)
 
     function closeWebView() {
-        setOpen(false); // 웹뷰 닫기
+        setOpen(false);
     } // 웹뷰 닫기
 
     useEffect(() => {
@@ -69,37 +76,28 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
     // translationMap 상태 변경 시 WebView에 번역된 텍스트 업데이트
     useEffect(() => {
-        //console.log("translationMap 상태 변경됨:", translationMap);
 
-        if (webViewRef.current) {
+        console.log("isTranslationDone", isTranslationDone, "translationMap", translationMap);
 
-            // 번역된 텍스트를 WebView에 주입할 JavaScript 코드 생성
-            const translationScript = `
-                (function() {
-                    const translationMap = ${JSON.stringify(translationMap)};
+        // 번역이 완료되지 않은 경우 return
+        if (!isTranslationDone) return;
 
-                    const elements = document.querySelectorAll('[data-translation-id]');
-                    elements.forEach(el => {
-                        let html = el.innerHTML;
-                        translationMap.forEach(item => {
-                            html = html.replaceAll(item.original, item.translated);
-                        });
-                        el.innerHTML = html;
-                    });
+        // 웹뷰의 처리를 완료되지 않음으로 설정
+        isTranslationDone = false;
 
-                    true;
-                })();
-            `;
+        // 가장 마지막의 translationMap element는 아직 갱신이 되지 않았을 수 있기 때문에, 맨 마지막의 원소는 제외하고 전달.
+        // 단, 이때, 마지막의 원소를 제외했을 때 비었다면 return
+        const modifiedTranslationMap = translationMap.slice(0, -1);
+        if (modifiedTranslationMap.length == 0) return;
 
-            // WebView에 JavaScript 코드 주입
-            (webViewRef.current as any).injectJavaScript(translationScript);
+        if (webViewRef.current){
+            updateTranslationMapToWebView(modifiedTranslationMap, webViewRef);
         }
     }, [translationMap]);
 
     // parsedElements 상태가 변경될 때 마다 API를 호출해 번역 저장
     // parsedElements의 주요 변경은 "창 열기" 버튼 클릭 시 발생
     useEffect(() => {
-        //console.log("parsedElements 상태 변경됨:", parsedElements);
 
         // parsedElements가 비어있지 않은 경우에만 API 호출
         if (parsedElements.length > 0) {
@@ -128,7 +126,6 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
         {false && (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-                
                 <TouchableOpacity 
                 onPress={() => { 
                     setIsTranslated(!isTranslated);
@@ -144,7 +141,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                 >
                 <Text style={{ fontSize: 16, textAlign: 'center' }}>창 닫기</Text>
                 </TouchableOpacity>
-            </View> // 이 부분은 표시되지 않음.
+            </View>
         )} 
 
         {open && (
@@ -159,20 +156,29 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                     setNavState(newState);
                 }}
                 onMessage={(event) => {
-                    try {
-                        setParsedElements([]);
-                        setTranslationMap([]);
-                        const data = JSON.parse(event.nativeEvent.data);
-                        console.log("📩 onMessage 데이터:", event.nativeEvent.data);
-                        
-                        // 만약 data가 비어있거나 original, translated 형식이라면 아래 코드 스킵
-                        if (data.length == 0 || (data[0].hasOwnProperty('original') && data[0].hasOwnProperty('translated'))) {
-                            return;
+
+                    // 만약 event.nativeEvent.data가 "Webpage Elements:"로 시작한다면, parsedElements를 업데이트 하기 위한 return임.
+                    if (event.nativeEvent.data.startsWith("Webpage Elements:")) {
+                        const data = JSON.parse(event.nativeEvent.data.replace("Webpage Elements:", ""));
+                        try {
+                            setParsedElements([]);
+                            setTranslationMap([]);
+                            
+                            // 만약 data가 비어있거나 original, translated 형식이라면 아래 코드 스킵
+                            if (data.length == 0 || (data[0].hasOwnProperty('original') && data[0].hasOwnProperty('translated'))) {
+                                return;
+                            }
+                            setParsedElements(data);
+                            setFirstTranslate(false);
+                        } catch (e) {
+                            console.warn("❌ JSON 파싱 오류:", e);
                         }
-                        setParsedElements(data);
-                        setFirstTranslate(false);
-                    } catch (e) {
-                        console.warn("❌ JSON 파싱 오류:", e);
+                    }
+
+                    // Translation Done이라는 메시지가 오면 번역 완료 상태 업데이트 (updateTranslationMapToWebView.ts)
+                    if (event.nativeEvent.data === "Translation Done") {
+                        isTranslationDone = true;
+                        console.log("✅ 번역 완료");
                     }
                 }}
                 onLoadEnd={() => {
