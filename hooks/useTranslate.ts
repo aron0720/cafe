@@ -24,7 +24,7 @@ export async function translateText(
     prompt: string, 
     additionalPrompt: string, 
     text: { index: string, text: string }[],
-    translationMap: { original: string, translated: string }[],
+    translationMapAlreadyStored: { original: string, translated: string }[],
     setTranslationMap: React.Dispatch<React.SetStateAction<{ original: string, translated: string }[]>>,
     setIsTranslationAPICompleted: React.Dispatch<React.SetStateAction<boolean>>
 ) {
@@ -98,7 +98,7 @@ export async function translateText(
             });
     
             // combinedText를 translationMap에 반영
-            parseListAndSetTranslatedText(combinedText, text, translationMap, setTranslationMap);
+            parseListAndSetTranslatedText(combinedText, text, translationMapAlreadyStored, setTranslationMap);
         } catch (error) {
             console.error("JSON 파싱 오류:", error, "디코딩된 텍스트:", decodedText);
         }
@@ -119,7 +119,7 @@ export async function translateText(
 function parseListAndSetTranslatedText(
     combinedText: string, 
     text: { index: string, text: string }[], 
-    translationMap: { original: string, translated: string }[],
+    translationMapAlreadyStored: { original: string, translated: string }[],
     setTranslationMap: React.Dispatch<React.SetStateAction<{ original: string, translated: string }[]>>
 ) {
 
@@ -141,9 +141,7 @@ function parseListAndSetTranslatedText(
         }
     });
 
-    // 이미 translationMap에 있는 요소를 제외한 후, 상태 업데이트
-    const updatedTranslationMap = translationMap.filter(item => 
-        !tempTranslationMap.some(tempItem => item.original === tempItem.original)
-    );
-    setTranslationMap([...updatedTranslationMap, ...tempTranslationMap]);
+    // 마지막으로 translationMapAlreadyStored와 tempTranslationMap을 합쳐서 setTranslationMap에 저장
+    const updatedTranslationMap = [...translationMapAlreadyStored, ...tempTranslationMap];
+    setTranslationMap(updatedTranslationMap);
 }

@@ -76,6 +76,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
     // translationMap 상태 변경 시 WebView에 번역된 텍스트 업데이트
     useEffect(() => {
+        console.log("translationMap 상태 변경:", translationMap);
 
         // 가장 마지막의 translationMap element는 아직 갱신이 되지 않았을 수 있기 때문에, 맨 마지막의 원소는 제외하고 전달.
         // 단, 이때, 마지막의 원소를 제외했을 때 비었다면 return
@@ -83,6 +84,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         if (webViewRef.current){
             updateTranslationMapToWebView(modifiedTranslationMap, webViewRef);
         }
+        else console.log("webViewRef.current가 null입니다.");
     }, [translationMap]);
 
     // translationAPICompleted 상태가 변경되면 최종적으로 번역된 결과를 WebView에 업데이트
@@ -106,7 +108,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
         // parsedElements 중 이미 storage에 저장된 것들은 미리 해당 사항을 storage에서 추출해 translationMap에 저장
         const filteredParsedElements: { index: string, text: string }[] = [];
-        const updatedTranslationMap: { original: string, translated: string }[] = [];
+        const translationMapAlreadyStored: { original: string, translated: string }[] = [];
 
         parsedElements.forEach((parsedElement) => {
             const existingItem = translationMapStorage.find(
@@ -116,7 +118,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
             if (existingItem) {
 
                 // 중복된 항목은 translationMap에 반영
-                updatedTranslationMap.push({
+                translationMapAlreadyStored.push({
                     original: parsedElement.text,
                     translated: existingItem.translated,
                 });
@@ -127,12 +129,9 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
             }
         });
 
-        // translationMap에 중복된 항목 반영
-        setTranslationMap(updatedTranslationMap);
-
         // filteredParsedElements가 비어있지 않은 경우에만 API 호출
         if (parsedElements.length > 0) 
-            translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMap, setTranslationMap, setIsTranslationAPICompleted);
+            translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMapAlreadyStored, setTranslationMap, setIsTranslationAPICompleted);
     }, [parsedElements]);
 
     useEffect(() => { 
@@ -219,9 +218,9 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                         return
                     }
 
-                    // Translation Done이라는 메시지가 오면 번역 완료 상태 업데이트 (updateTranslationMapToWebView.ts)
-                    if (event.nativeEvent.data === "Translation Done") {
-                        console.log("✅ 번역 완료");
+                    // WebView Update Done이라는 메시지가 오면 번역 완료 상태 업데이트 (updateTranslationMapToWebView.ts)
+                    if (event.nativeEvent.data === "WebView Update Done") {
+                        console.log("✅ 웹뷰 업데이트 완료");
                         return
                     }
 
@@ -230,7 +229,6 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                 onLoadEnd={() => {
                     setIsTranslationAPICompleted(false);
                     getParsedElementFromWebView(webViewRef, firstTrsnslate, isTranslated);
-                    console.log("✅ WebView 로드 완료");
                 }}
                 onError={(error) => {
                     console.error("WebView error:", error);

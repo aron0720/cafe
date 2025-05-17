@@ -13,7 +13,10 @@ export function updateTranslationMapToWebView(
 ) {
 
     // translationMap이 비어있으면 함수 종료
-    if (translationMap.length === 0) return;
+    if (translationMap.length === 0) {
+        console.log("translationMap is empty");
+        return;
+    }
 
     // 번역된 텍스트를 WebView에 주입할 JavaScript 코드 생성
     const translationScript = `
@@ -24,16 +27,16 @@ export function updateTranslationMapToWebView(
             elements.forEach(el => {
                 let html = el.innerHTML;
                 translationMap.forEach(item => {
-                    // html = html.replaceAll(item.original, item.translated);
+                    html = html.replaceAll(item.original, item.translated);
 
-                    const regex = new RegExp(\`(?<![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\${item.original}(?![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\`, 'gu');
-                    html = html.replace(regex, item.translated);
+                    // const regex = new RegExp(\`(?<![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\${item.original}(?![\\\\p{Script=Hiragana}\\\\p{Script=Katakana}\\\\p{Script=Han}])\`, 'gu');
+                    // html = html.replace(regex, item.translated);
                 });
                 el.innerHTML = html;
             });
 
             // 번역 완료 상태 업데이트
-            window.ReactNativeWebView.postMessage("Translation Done");
+            // window.ReactNativeWebView.postMessage("WebView Update Done");
 
             true;
         })();
