@@ -16,7 +16,6 @@ export function updateTranslationMapToWebView(
 
     // translationMap이 비어있으면 함수 종료
     if (translationMap.length === 0) {
-        console.log("translationMap is empty");
         return;
     }
 

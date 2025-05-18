@@ -77,7 +77,6 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
     // translationMap 상태 변경 시 WebView에 번역된 텍스트 업데이트
     useEffect(() => {
-        console.log("translationMap 상태 변경:", translationMap);
 
         // 가장 마지막의 translationMap element는 아직 갱신이 되지 않았을 수 있기 때문에, 맨 마지막의 원소는 제외하고 전달.
         // 단, 이때, 마지막의 원소를 제외했을 때 비었다면 return
@@ -95,11 +94,16 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
         if (isTranslationAPICompleted) {
             updateTranslationMapToWebView(translationMap, webViewRef, parsedElements);
-        }
 
-        // translationMap을 storage에 저장
-        if (translationMap.length > 0) {
-            setTranslationMapStorage((prev) => [...prev, ...translationMap]);
+            // translationMap 중 storage에 저장되지 않은 것들만 필터링해서 저장
+            if (translationMap.length > 0) {
+                const filteredTranslationMap = translationMap.filter((item) => {
+                    return !translationMapStorage.some((storedItem) => storedItem.original === item.original);
+                });
+                setTranslationMapStorage((prev) => [...prev, ...filteredTranslationMap]);
+                console.log("✅ 번역된 결과를 storage에 저장, 저장된 원소 개수: ", filteredTranslationMap.length);
+            }
+            setParsedElements([]);
         }
     }, [isTranslationAPICompleted]);
 
@@ -107,7 +111,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     // parsedElements의 주요 변경은 "클릭하여 시작하기" 버튼 클릭 시 webView의 onLoadEnd에서 발생
     useEffect(() => {
 
-        if (parsedElements.length == 0) return; // parsedElements가 비어있으면 처리 중지
+        if (parsedElements.length == 0) return;
 
         // parsedElements를 filtering해서 만약 해당 요소가 이미 stored되어 있다면, { original, translated } 형태로 translationMapAlreadyStored에 저장
         // 아니라면, { xpath, text } 형태로 filteredParsedElements에 저장
@@ -141,6 +145,9 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         // filteredParsedElements가 비어있지 않은 경우에만 API 호출
         if (parsedElements.length > 0) 
             translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMapAlreadyStored, setTranslationMap, setIsTranslationAPICompleted);
+        else {
+            setIsTranslationAPICompleted(true);
+        }
     }, [parsedElements]);
 
     // translationMapStorage 상태가 변경될 때 마다 AsyncStorage에 저장
@@ -227,7 +234,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                     if (event.nativeEvent.data.startsWith("Webpage Elements:")) {
                         const data = JSON.parse(event.nativeEvent.data.replace("Webpage Elements:", ""));
                         try {
-                            setParsedElements([]);
+                            
                             setTranslationMap([]);
                             
                             // 만약 data가 비어있거나 original, translated 형식이라면 아래 코드 스킵
@@ -259,8 +266,8 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                 }}
                 onLoadEnd={() => {
 
-                    // 로드가 끝나면 html 문서 전체를 가져오기
-                    webViewRef.current?.injectJavaScript(`window.ReactNativeWebView.postMessage("HTML:" + document.documentElement.outerHTML);`);
+                    // // 로드가 끝나면 html 문서 전체를 가져오기
+                    // webViewRef.current?.injectJavaScript(`window.ReactNativeWebView.postMessage("HTML:" + document.documentElement.outerHTML);`);
 
                     setIsTranslationAPICompleted(false);
                     getParsedElementFromWebView(webViewRef);
