@@ -41,6 +41,12 @@ export default function URLInput({ url, setUrl }: URLInputProps) {
             >
                 <Text style={{ fontSize: 16, textAlign: 'center' }}>설정</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+                style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5, marginTop: 10, marginLeft: 5 }} 
+                onPress={() => router.push('/translationMap')}
+            >
+                <Text style={{ fontSize: 16, textAlign: 'center' }}>번역 Mapping</Text>
+            </TouchableOpacity>
         </View>
     );
 }
