@@ -2,6 +2,7 @@ import { ScrollView, TouchableOpacity, Text, Dimensions, View, Alert, TextInput 
 import { useEffect, useState } from "react";
 import InnerHeader from "@/components/innerHeader";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { renderMappingItem } from "@/components/renderMappingItem";
 
 export default function Setting() {
 
@@ -19,6 +20,9 @@ export default function Setting() {
 
     // 각 항목의 수정 상태를 관리
     const [editedItems, setEditedItems] = useState<{ original: string; translated: string }[]>([]);
+
+    // 현재 보고있는 page를 저장하기 위한 state
+    const [currentPage, setCurrentPage] = useState<number>(0);
 
     // 초기화를 위한 useEffect
     useEffect(() => {
@@ -41,9 +45,22 @@ export default function Setting() {
     // scrollView 내부에 생성되어야 할 mapping 내용은 original, translated가 기본값으로 있는 TextInput(좌측)과 삭제와 저장하기 버튼(우측)으로 구성되어야 함
     useEffect(() => {
 
+        // 한 화면에 보여줄 수 있는 항목 수는 40개로 제한
+        const itemsPerPage = 40;
+        const startIndex = currentPage * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+
+        // 검색어가 존재한다면, 해당 검색어를 포함하는 항목만 필터링
+        const filteredItems = translationMapStorage.filter(item => 
+            item.original.includes(searchItem) || item.translated.includes(searchItem)
+        );
+
+        // 필터링된 항목을 페이지에 맞게 잘라냄
+        const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
         // ScrollView에 표시할 내용을 렌더링
         const renderMappingItems = () => {
-            return translationMapStorage.map((item, index) => {
+            return paginatedItems.map((item, index) => {
 
                 // 상태를 상위에서 관리
                 const editedOriginal = editedItems[index]?.original || item.original;
@@ -65,92 +82,52 @@ export default function Setting() {
                         Alert.alert('저장 실패', '변경된 내용을 저장하지 못했습니다.');
                     }
                 };
-    
-                return (
-                    <View
-                        key={index}
-                        style={{
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            width: width * 0.9,
-                            marginBottom: 10,
-                            padding: 10,
-                            backgroundColor: '#fff',
-                            borderRadius: 5,
-                            borderWidth: 1,
-                            borderColor: '#ccc',
-                        }}
-                    >
-                        {/* Original TextInput */}
-                        <TextInput
-                            style={{
-                                borderWidth: 1,
-                                borderColor: '#ccc',
-                                padding: 10,
-                                borderRadius: 5,
-                                width: width * 0.4,
-                            }}
-                            value={editedOriginal}
-                            onChangeText={(text) => handleEdit(index, 'original', text)}
-                        />
-    
-                        {/* Translated TextInput */}
-                        <TextInput
-                            style={{
-                                borderWidth: 1,
-                                borderColor: '#ccc',
-                                padding: 10,
-                                borderRadius: 5,
-                                width: width * 0.4,
-                            }}
-                            value={editedTranslated}
-                            onChangeText={(text) => handleEdit(index, 'translated', text)}
-                        />
-    
-                        {/* 저장 버튼 */}
-                        <TouchableOpacity
-                            style={{
-                                padding: 10,
-                                backgroundColor: '#4CAF50',
-                                borderRadius: 5,
-                                marginLeft: 10,
-                            }}
-                            onPress={saveChanges}
-                        >
-                            <Text style={{ color: '#fff', fontSize: 14 }}>저장</Text>
-                        </TouchableOpacity>
-                    </View>
-                );
+
+                return renderMappingItem(index, width, editedOriginal, editedTranslated, saveChanges, setEditedItems);
             });
-        };
+        }
     
         // ScrollView에 렌더링할 항목 설정
         setRenderedItems(renderMappingItems());
-    }, [translationMapStorage, editedItems]);
-    
-    // 항목 수정 핸들러
-    const handleEdit = (index: number, field: 'original' | 'translated', value: string) => {
-        setEditedItems((prev) => {
-            const updated = [...prev];
-            if (!updated[index]) {
-                updated[index] = { original: '', translated: '' };
-            }
-            updated[index][field] = value;
-            return updated;
-        });
-    };
+    }, [translationMapStorage, editedItems, searchItem, currentPage]);
     
     return (
         <>
             <View style={{ flexDirection: 'column', justifyContent: 'space-between', padding: 10, alignItems: 'center', backgroundColor: '#eee', gap: 10 }}>
                 <InnerHeader />
-                <TextInput
-                    style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, width: width * 0.7 }}
-                    placeholder="검색할 문장 입력"
-                    value={searchItem}
-                    onChangeText={setSearchItem}
-                />
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: width * 0.9, marginBottom: 10 }}>
+                    <TextInput
+                        style={{ borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, width: width * 0.7 }}
+                        placeholder="검색할 문장 입력"
+                        value={searchItem}
+                        onChangeText={setSearchItem}
+                    />
+
+                    {/* 페이지 넘기기, 뒤로가기 버튼 */}
+                    <TouchableOpacity
+                        style={{ backgroundColor: currentPage > 0 ? '#007BFF' : '#ccc', padding: 10, borderRadius: 5, width: width * 0.07, alignItems: 'center' }}
+                        onPress={() => {
+                            if (currentPage > 0) {
+                                setCurrentPage(currentPage - 1);
+                            }
+                        }}
+                        disabled={currentPage === 0}
+                    >
+                        <Text style={{ color: '#fff', fontSize: 14 }}>{'<'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={{ backgroundColor: renderedItems.length === 40 ? '#007BFF' : '#ccc', padding: 10, borderRadius: 5, width: width * 0.07, alignItems: 'center' }}
+                        onPress={() => {
+                            if (renderedItems.length === 40) {
+                                setCurrentPage(currentPage + 1);
+                            }
+                        }}
+                        disabled={renderedItems.length < 40}
+                    >
+                        <Text style={{ color: '#fff', fontSize: 14 }}>{'>'}</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
     
             <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }}>
