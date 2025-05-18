@@ -4,6 +4,7 @@ import { WebView, WebViewNavigation } from 'react-native-webview';
 import { getParsedElementFromWebView } from '@/hooks/getParsedElementFromWebView';
 import { translateText } from '@/hooks/useTranslate';
 import { updateTranslationMapToWebView } from '@/hooks/updateTranslationMapToWebView';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface outputLayoutProps {
     apiKey: string;
@@ -142,14 +143,29 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
             translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMapAlreadyStored, setTranslationMap, setIsTranslationAPICompleted);
     }, [parsedElements]);
 
+    // translationMapStorage 상태가 변경될 때 마다 AsyncStorage에 저장
+    useEffect(() => {
+        const saveTranslationMap = async () => {
+            try {
+                await AsyncStorage.setItem('translationMapStorage', JSON.stringify(translationMapStorage));
+                console.log("✅ 번역된 결과 저장 완료");
+            } catch (error) {
+                console.error("❌ 번역된 결과 저장 오류:", error);
+            }
+        };
+
+        saveTranslationMap();
+    }, [translationMapStorage]);
+
+    // URL이 about:blank이거나 비어있고 웹뷰가 로딩 중이지 않으면 웹뷰를 닫음
     useEffect(() => { 
         if ((url == 'about:blank') || (url == '') && !webViewLoading) {
-            setUrl(''); // URL 초기화
+            setUrl('');
             if (open == true) {
-                setOpen(false); // 웹뷰 닫기
+                setOpen(false);
             }
         }
-    }, [url]); // URL이 변경될 때마다 웹뷰를 업데이트
+    }, [url]);
 
     return (
         <View style={{ padding: 10, backgroundColor: '#eee', borderRadius: 8, width: width, height: height * 0.89}}>

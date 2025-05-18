@@ -1,5 +1,4 @@
-import { Stack, Tabs } from "expo-router";
-import Index from ".";
+import { Stack } from "expo-router";
 
 export default function RootLayout() {
     return (
