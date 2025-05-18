@@ -28,8 +28,6 @@ export async function translateText(
     setTranslationMap: React.Dispatch<React.SetStateAction<{ original: string, translated: string }[]>>,
     setIsTranslationAPICompleted: React.Dispatch<React.SetStateAction<boolean>>
 ) {
-
-    //console.log("translateText 함수 호출됨:", { apikey, prompt, additionalPrompt, text });
     
     // 받은 텍스트를 {숫자}||{내용}\n 헝태의 문자열로 변환
     const textToTranslate = text.map((item, index) => {
