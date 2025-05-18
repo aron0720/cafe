@@ -109,6 +109,8 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
             }
             setParsedElements([]);
         }
+
+        console.log("pasedele",parsedElements)
     }, [isTranslationAPICompleted]);
 
     // parsedElements 상태가 변경될 때 마다 API를 호출해 번역 저장

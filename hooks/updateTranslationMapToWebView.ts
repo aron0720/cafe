@@ -34,18 +34,16 @@ export function updateTranslationMapToWebView(
                 const element = getElementByXpath(parsed.xpath);
                 if (element) {
                     let html = element.innerHTML;
+
+                    // translationMap을 사용하여 HTML 내용에 대응
                     translationMap.forEach(item => {
-                        if (parsed.text.includes(item.original)) {
+                        if (item.original.includes(parsed.text)) {
                             html = html.replaceAll(item.original, item.translated);
                         }
                     });
                     element.innerHTML = html;
                 }
             });
-
-            // 번역 완료 상태 업데이트
-            // window.ReactNativeWebView.postMessage("WebView Update Done");
-
             true;
         })();
     `;
