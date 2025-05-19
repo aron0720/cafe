@@ -4,6 +4,7 @@ import { WebView, WebViewNavigation } from 'react-native-webview';
 import { getParsedElementFromWebView } from '@/hooks/getParsedElementFromWebView';
 import { translateText } from '@/hooks/useTranslate';
 import { updateTranslationMapToWebView } from '@/hooks/updateTranslationMapToWebView';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface outputLayoutProps {
     apiKey: string;
@@ -45,6 +46,55 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     function closeWebView() {
         setOpen(false);
     } // 웹뷰 닫기
+
+    useEffect(() => {
+        const loadSetting = async () => {
+            try {
+                const apiKey = await AsyncStorage.getItem('apiKey');
+                const prompt = await AsyncStorage.getItem('prompt');
+                const additionalPrompt = await AsyncStorage.getItem('additionalPrompt');
+
+                if (apiKey) setApiKey(apiKey); 
+                if (prompt) setPrompt(prompt); 
+                if (additionalPrompt) setAdditionalPrompt(additionalPrompt); 
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        loadSetting(); // 컴포넌트 마운트 시 설정 로드
+    }, []); // 저장된 설정 정보 로드 
+
+    useEffect(() => {
+        const loadTabs = async () => {
+            try {
+                const storedTabs = await AsyncStorage.getItem('tabs');
+                const usingTabs = await AsyncStorage.getItem('usingTabs');
+                let storedTabsJson = storedTabs ? JSON.parse(storedTabs) : null;
+                let usingTabsNumber = usingTabs ? Number(usingTabs) : 0;
+
+                if (!storedTabs) {
+                    const dataInit = [
+                        {"url": url}
+                    ]
+                    await AsyncStorage.setItem('tabs', JSON.stringify(dataInit));
+
+                    storedTabsJson = dataInit
+                }
+
+                if (!usingTabs) {
+                    await AsyncStorage.setItem('usingTabs', '0');
+                }
+
+                setUrl(storedTabsJson[usingTabsNumber].url); // URL 업데이트
+
+            } catch (error) {
+                console.error('Error loading tabs:', error);
+            }
+        }
+
+        loadTabs(); // 컴포넌트 마운트 시 탭 로드
+    }, []); // 저장된 탭 정보 로드 
 
     useEffect(() => {
         if (!navstate) return; // navstate가 null인 경우 처리 중지
@@ -172,27 +222,6 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         >
             <Text style={{ fontSize: 16, textAlign: 'center' }}>새로고침</Text>
         </TouchableOpacity>}
-
-
-        {false && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-                <TouchableOpacity 
-                onPress={() => { 
-                    setIsTranslated(!isTranslated);
-                }}
-                style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5, flex: 1, marginRight: 5 }}
-                >
-                <Text style={{ fontSize: 16, textAlign: 'center' }}>{isTranslated ? '원문 표시' : '번역 표시'}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                onPress={() => closeWebView()} 
-                style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5, flex: 1, marginLeft: 5 }}
-                >
-                <Text style={{ fontSize: 16, textAlign: 'center' }}>창 닫기</Text>
-                </TouchableOpacity>
-            </View>
-        )} 
 
         {open && (
             <WebView 

@@ -12,7 +12,7 @@ export default function Setting() {
     const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
     function saveButtonHandler() {
-        console.log('hanldle save button');
+        //console.log('hanldle save button');
 
         const saveSetting = async () => {
             if (!apiKey || !prompt) {
@@ -28,7 +28,7 @@ export default function Setting() {
                 }
             }
             
-            console.log('저장 완료'); // Log save completion
+            //console.log('저장 완료'); // Log save completion
             alert('저장 완료'); // Alert save completion
         }
 

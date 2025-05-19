@@ -1,6 +1,7 @@
 import { View, TextInput, TouchableOpacity, Dimensions, Text } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface URLInputProps {
     url: string; // URL state
@@ -14,6 +15,19 @@ export default function URLInput({ url, setUrl }: URLInputProps) {
     useEffect(() => {
         setTempValue(url); // URL이 변경될 때 임시 URL 상태 업데이트
     }, [url]);
+
+    async function tabButtonHandler() {
+        const usingTabs = await AsyncStorage.getItem('usingTabs');
+        const tabs = await AsyncStorage.getItem('tabs');
+        if (tabs) {
+            let tabJson = JSON.parse(tabs);
+            tabJson[Number(usingTabs)].url = url;
+
+            await AsyncStorage.setItem('tabs', JSON.stringify(tabJson));
+        }
+
+        router.push('/tab');
+    }
 
     return (
         <View style={{ padding: 10,  backgroundColor: '#eee', borderRadius: 8, width: width, flexDirection: 'row' }}>
@@ -31,7 +45,7 @@ export default function URLInput({ url, setUrl }: URLInputProps) {
             />
             <TouchableOpacity
                 style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5, marginTop: 10, marginLeft: 5 }} 
-                onPress={() => router.push('/tab')}
+                onPress={() => tabButtonHandler()}
             >
                 <Text style={{ fontSize: 16, textAlign: 'center' }}>탭</Text>
             </TouchableOpacity>
