@@ -65,7 +65,7 @@ export default function Setting() {
                 // 상태를 상위에서 관리
                 const editedOriginal = editedItems[index]?.original || item.original;
                 const editedTranslated = editedItems[index]?.translated || item.translated;
-    
+
                 const saveChanges = async () => {
                     try {
                         
@@ -83,7 +83,7 @@ export default function Setting() {
                     }
                 };
 
-                return renderMappingItem(index, width, editedOriginal, editedTranslated, saveChanges, setEditedItems);
+                return renderMappingItem(index, width, editedOriginal, editedTranslated, saveChanges, setEditedItems, setTranslationMapStorage);
             });
         }
     

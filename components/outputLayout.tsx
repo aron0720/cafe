@@ -184,11 +184,14 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
             loadTranslationMap();
 
             // 번역된 결과를 불러온 후, original, translated 짝에서 translated가 변한 것이 있다면, 해당 내용을 translationMap에 업데이트
-            const updatedTranslationMap = translationMapStorage.map((item) => {
+            // 만약, original, translated 짝이 없다면, 해당 요소가 삭제된 것이므로 translationMap에서 삭제
+            let updatedTranslationMap = translationMapStorage.map((item) => {
                 const storedItem = translationMapStorage.find((storedItem) => storedItem.original === item.original);
                 return storedItem ? { ...item, translated: storedItem.translated } : item;
             });
+            updatedTranslationMap = updatedTranslationMap.filter((item) => item.translated !== undefined);
             setTranslationMap(updatedTranslationMap);
+            console.log(updatedTranslationMap.length)
         }
     }, [isFocused]);
 
