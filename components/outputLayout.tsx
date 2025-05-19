@@ -4,7 +4,8 @@ import { WebView, WebViewNavigation } from 'react-native-webview';
 import { getParsedElementFromWebView } from '@/hooks/getParsedElementFromWebView';
 import { translateText } from '@/hooks/useTranslate';
 import { updateTranslationMapToWebView } from '@/hooks/updateTranslationMapToWebView';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsFocused } from '@react-navigation/native';
 
 interface outputLayoutProps {
     apiKey: string;
@@ -35,6 +36,9 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
     // 번역 API가 완전히 종료되었는지를 확인하는 state
     const [isTranslationAPICompleted, setIsTranslationAPICompleted] = useState(true);
+
+    // 이 화면이 focus 되었을 때, AsyncStorage에서 번역된 결과를 불러오기 위해 사용하는 state
+    const isFocused = useIsFocused();
 
     function openWebView() {
         setWebViewLoading(true); // 웹뷰 로딩 상태 설정
@@ -126,7 +130,6 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
     // translationMap 상태 변경 시 WebView에 번역된 텍스트 업데이트
     useEffect(() => {
-        console.log("translationMap 상태 변경:", translationMap);
 
         // 가장 마지막의 translationMap element는 아직 갱신이 되지 않았을 수 있기 때문에, 맨 마지막의 원소는 제외하고 전달.
         // 단, 이때, 마지막의 원소를 제외했을 때 비었다면 return
@@ -144,19 +147,26 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
         if (isTranslationAPICompleted) {
             updateTranslationMapToWebView(translationMap, webViewRef, parsedElements);
+
+            // translationMap 중 storage에 저장되지 않은 것들만 필터링해서 저장
+            if (translationMap.length > 0) {
+                const filteredTranslationMap = translationMap.filter((item) => {
+                    return !translationMapStorage.some((storedItem) => storedItem.original === item.original);
+                });
+                setTranslationMapStorage((prev) => [...prev, ...filteredTranslationMap]);
+                console.log("✅ 번역된 결과를 storage에 저장, 저장된 원소 개수: ", filteredTranslationMap.length);
+            }
+            setParsedElements([]);
         }
 
-        // translationMap을 storage에 저장
-        if (translationMap.length > 0) {
-            setTranslationMapStorage((prev) => [...prev, ...translationMap]);
-        }
+        console.log("pasedele",parsedElements)
     }, [isTranslationAPICompleted]);
 
     // parsedElements 상태가 변경될 때 마다 API를 호출해 번역 저장
     // parsedElements의 주요 변경은 "클릭하여 시작하기" 버튼 클릭 시 webView의 onLoadEnd에서 발생
     useEffect(() => {
 
-        if (parsedElements.length == 0) return; // parsedElements가 비어있으면 처리 중지
+        if (parsedElements.length == 0) return;
 
         // parsedElements를 filtering해서 만약 해당 요소가 이미 stored되어 있다면, { original, translated } 형태로 translationMapAlreadyStored에 저장
         // 아니라면, { xpath, text } 형태로 filteredParsedElements에 저장
@@ -187,19 +197,62 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         console.log("✅ 이미 저장된 요소:", translationMapAlreadyStored);
         console.log("✅ 새로 번역할 요소:", filteredParsedElements);
 
-        // filteredParsedElements가 비어있지 않은 경우에만 API 호출
-        if (parsedElements.length > 0) 
-            translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMapAlreadyStored, setTranslationMap, setIsTranslationAPICompleted);
+        // API 호출
+        translateText(apiKey, prompt, additionalPrompt, filteredParsedElements, translationMapAlreadyStored, setTranslationMap, setIsTranslationAPICompleted);
     }, [parsedElements]);
 
+    // translationMapStorage 상태가 변경될 때 마다 AsyncStorage에 저장
+    useEffect(() => {
+        const saveTranslationMap = async () => {
+            try {
+                await AsyncStorage.setItem('translationMapStorage', JSON.stringify(translationMapStorage));
+                console.log("✅ 번역된 결과 저장 완료");
+            } catch (error) {
+                console.error("❌ 번역된 결과 저장 오류:", error);
+            }
+        };
+
+        saveTranslationMap();
+    }, [translationMapStorage]);
+
+    // isFocused가 바뀌면, 해당 상태가 true일때 AsyncStorage에서 번역된 결과를 불러옴
+    useEffect(() => {
+        if (isFocused) {
+            console.log("isFocused 상태 변경:", isFocused);
+            const loadTranslationMap = async () => {
+                try {
+                    const translationMapStorage = await AsyncStorage.getItem('translationMapStorage');
+                    if (translationMapStorage) {
+                        setTranslationMapStorage(JSON.parse(translationMapStorage));
+                    }
+                } catch (error) {
+                    console.error('Error loading translation map storage:', error);
+                }
+            };
+
+            loadTranslationMap();
+
+            // 번역된 결과를 불러온 후, original, translated 짝에서 translated가 변한 것이 있다면, 해당 내용을 translationMap에 업데이트
+            // 만약, original, translated 짝이 없다면, 해당 요소가 삭제된 것이므로 translationMap에서 삭제
+            let updatedTranslationMap = translationMapStorage.map((item) => {
+                const storedItem = translationMapStorage.find((storedItem) => storedItem.original === item.original);
+                return storedItem ? { ...item, translated: storedItem.translated } : item;
+            });
+            updatedTranslationMap = updatedTranslationMap.filter((item) => item.translated !== undefined);
+            setTranslationMap(updatedTranslationMap);
+            console.log(updatedTranslationMap.length)
+        }
+    }, [isFocused]);
+
+    // URL이 about:blank이거나 비어있고 웹뷰가 로딩 중이지 않으면 웹뷰를 닫음
     useEffect(() => { 
         if ((url == 'about:blank') || (url == '') && !webViewLoading) {
-            setUrl(''); // URL 초기화
+            setUrl('');
             if (open == true) {
-                setOpen(false); // 웹뷰 닫기
+                setOpen(false);
             }
         }
-    }, [url]); // URL이 변경될 때마다 웹뷰를 업데이트
+    }, [url]);
 
     return (
         <View style={{ padding: 10, backgroundColor: '#eee', borderRadius: 8, width: width, height: height * 0.89}}>
@@ -240,7 +293,6 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                     if (event.nativeEvent.data.startsWith("Webpage Elements:")) {
                         const data = JSON.parse(event.nativeEvent.data.replace("Webpage Elements:", ""));
                         try {
-                            setParsedElements([]);
                             setTranslationMap([]);
                             
                             // 만약 data가 비어있거나 original, translated 형식이라면 아래 코드 스킵
@@ -248,7 +300,6 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                                 return;
                             }
                             setParsedElements(data);
-                            setFirstTranslate(false);
                         } catch (e) {
                             console.warn("❌ JSON 파싱 오류:", e);
                         }
@@ -272,8 +323,8 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                 }}
                 onLoadEnd={() => {
 
-                    // 로드가 끝나면 html 문서 전체를 가져오기
-                    webViewRef.current?.injectJavaScript(`window.ReactNativeWebView.postMessage("HTML:" + document.documentElement.outerHTML);`);
+                    // // 로드가 끝나면 html 문서 전체를 가져오기
+                    // webViewRef.current?.injectJavaScript(`window.ReactNativeWebView.postMessage("HTML:" + document.documentElement.outerHTML);`);
 
                     setIsTranslationAPICompleted(false);
                     getParsedElementFromWebView(webViewRef);

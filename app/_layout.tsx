@@ -1,5 +1,4 @@
-import { Stack, Tabs } from "expo-router";
-import Index from ".";
+import { Stack } from "expo-router";
 
 export default function RootLayout() {
     return (
@@ -14,15 +13,22 @@ export default function RootLayout() {
             <Stack.Screen 
                 name="tab"
                 options={{ 
-                    headerShown: false,  // 헤더 숨기기
-                    navigationBarHidden: true, // 네비게이션 바 숨기기
+                    headerShown: false,
+                    navigationBarHidden: true,
                 }}
             />
             <Stack.Screen 
                 name="setting"
                 options={{ 
-                    headerShown: false,  // 헤더 숨기기
-                    navigationBarHidden: true, // 네비게이션 바 숨기기
+                    headerShown: false,
+                    navigationBarHidden: true,
+                }}
+            />
+            <Stack.Screen 
+                name="translationMap"
+                options={{ 
+                    headerShown: false,
+                    navigationBarHidden: true,
                 }}
             />
         </Stack>
