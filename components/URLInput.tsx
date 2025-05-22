@@ -6,9 +6,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface URLInputProps {
     url: string; // URL state
     setUrl: (url: string) => void; // function to set URL state
+    pageTitle: string;
+    setPageTitle: (pageTitle: string) => void;
 } // URLInput component props
 
-export default function URLInput({ url, setUrl }: URLInputProps) {    
+export default function URLInput({ url, setUrl, pageTitle, setPageTitle }: URLInputProps) {    
     const {width, height} = Dimensions.get('window'); // 화면 크기 가져오기 
     const [tempValue, setTempValue] = useState(url); // 임시 URL 상태
 
@@ -19,11 +21,19 @@ export default function URLInput({ url, setUrl }: URLInputProps) {
     async function tabButtonHandler() {
         const usingTabs = await AsyncStorage.getItem('usingTabs');
         const tabs = await AsyncStorage.getItem('tabs');
+        const titles = await AsyncStorage.getItem('pageTitle');
         if (tabs) {
             let tabJson = JSON.parse(tabs);
             tabJson[Number(usingTabs)].url = url;
 
             await AsyncStorage.setItem('tabs', JSON.stringify(tabJson));
+        }
+
+        if (titles) {
+            let titleJson = JSON.parse(titles);
+            titleJson[Number(usingTabs)].pageTitle = pageTitle;
+
+            await AsyncStorage.setItem('pageTitle', JSON.stringify(titleJson));
         }
 
         router.push('/tab');
@@ -38,8 +48,10 @@ export default function URLInput({ url, setUrl }: URLInputProps) {
                 value={tempValue} // url state
                 onChangeText={setTempValue} // update URL state on change
                 onSubmitEditing={() => {
-                    setUrl(tempValue); // set URL state
-                    setTempValue(''); // clear input field
+                    if (tempValue.trim() !== '') {
+                        setUrl(tempValue); // set URL state
+                        setTempValue(''); // clear input field;
+                    }
                 }} // submit URL on enter
                 returnKeyType="done"
             />

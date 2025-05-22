@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, use } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, BackHandler } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { getParsedElementFromWebView } from '@/hooks/getParsedElementFromWebView';
@@ -6,6 +6,7 @@ import { translateText } from '@/hooks/useTranslate';
 import { updateTranslationMapToWebView } from '@/hooks/updateTranslationMapToWebView';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 
 interface outputLayoutProps {
     apiKey: string;
@@ -16,17 +17,20 @@ interface outputLayoutProps {
     setAdditionalPrompt: (prompt: string) => void;
     url: string;
     setUrl: (url: string) => void;
+    pageTitle: string;
+    setPageTitle: (pageTitle: string) => void;
 }
 
-export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, additionalPrompt, setAdditionalPrompt, url, setUrl  }: outputLayoutProps) {
+export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, additionalPrompt, setAdditionalPrompt, url, setUrl, pageTitle, setPageTitle }: outputLayoutProps) {
     const [open, setOpen] = useState(false); // 웹뷰 열기 상태
     const {width, height} = Dimensions.get('window'); // 화면 크기 가져오기
-    const [isTranslated, setIsTranslated] = useState(false); // 번역 상태
     const webViewRef = useRef<WebView>(null); // 웹뷰 참조
     const [parsedElements, setParsedElements] = useState<{ xpath: string, text: string }[]>([]);
     const [firstTrsnslate, setFirstTranslate] = useState(true); // 첫 번째 번역 상태
     const [webViewLoading, setWebViewLoading] = useState(false); // 웹뷰 열기 상태
     const [navstate, setNavState] = useState<WebViewNavigation | null>(null); // 웹뷰 내비게이션 상태
+    const [storedTabs, setStoredTabs] = useState<any[]>([]);
+    const [usingtab, setUsingTab] = useState<number>();
 
     // 원본, 번역 대응 표를 저장하는 state
     const [translationMap, setTranslationMap] = useState<{ original: string, translated: string }[]>([]);
@@ -40,10 +44,8 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     // 이 화면이 focus 되었을 때, AsyncStorage에서 번역된 결과를 불러오기 위해 사용하는 state
     const isFocused = useIsFocused();
 
-    function openWebView() {
+    async function openWebView() {
         setWebViewLoading(true); // 웹뷰 로딩 상태 설정
-        setIsTranslated(false); // 번역 상태 초기화
-        setUrl(url); // 현재 URL 업데이트
         setOpen(true); // 웹뷰 열기
     } // 버튼 클릭 시 웹뷰 열기(닫혀있다면)
 
@@ -51,73 +53,84 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         setOpen(false);
     } // 웹뷰 닫기
 
-    useEffect(() => {
-        const loadSetting = async () => {
-            try {
-                const apiKey = await AsyncStorage.getItem('apiKey');
-                const prompt = await AsyncStorage.getItem('prompt');
-                const additionalPrompt = await AsyncStorage.getItem('additionalPrompt');
+    useFocusEffect(
+        useCallback(() => {
+            const loadSetting = async () => {
+                try {
+                    const apiKey = await AsyncStorage.getItem('apiKey');
+                    const prompt = await AsyncStorage.getItem('prompt');
+                    const additionalPrompt = await AsyncStorage.getItem('additionalPrompt');
 
-                if (apiKey) setApiKey(apiKey); 
-                if (prompt) setPrompt(prompt); 
-                if (additionalPrompt) setAdditionalPrompt(additionalPrompt); 
-            } catch (error) {
-                console.error('Error loading settings:', error);
-            }
-        }
+                    if (apiKey) setApiKey(apiKey);
+                    if (prompt) setPrompt(prompt);
+                    if (additionalPrompt) setAdditionalPrompt(additionalPrompt);
+                } catch (error) {
+                    console.error('Error loading settings:', error);
+                }
+            };
 
-        loadSetting(); // 컴포넌트 마운트 시 설정 로드
-    }, []); // 저장된 설정 정보 로드 
+            const loadTabs = async () => {
+                try {
+                    const storedTabs = await AsyncStorage.getItem('tabs');
+                    const usingTabs = await AsyncStorage.getItem('usingTabs');
+                    const titles = await AsyncStorage.getItem('pageTitle');
+                    let storedTabsJson = storedTabs ? JSON.parse(storedTabs) : null;
+                    let usingTabsNumber = usingTabs ? Number(usingTabs) : 0;
+                    let titleJson = titles ? JSON.parse(titles) : null;
 
-    useEffect(() => {
-        const loadTabs = async () => {
-            try {
-                const storedTabs = await AsyncStorage.getItem('tabs');
-                const usingTabs = await AsyncStorage.getItem('usingTabs');
-                let storedTabsJson = storedTabs ? JSON.parse(storedTabs) : null;
-                let usingTabsNumber = usingTabs ? Number(usingTabs) : 0;
-
-                if (!storedTabs) {
-                    const dataInit = [
-                        {"url": url}
-                    ]
+                    if (!storedTabs) {
+                    const dataInit = [{ url }];
                     await AsyncStorage.setItem('tabs', JSON.stringify(dataInit));
+                    storedTabsJson = dataInit;
+                    }
 
-                    storedTabsJson = dataInit
-                }
-
-                if (!usingTabs) {
+                    if (!usingTabs) {
                     await AsyncStorage.setItem('usingTabs', '0');
+                    }
+
+                    if (!titleJson) {
+                        await AsyncStorage.setItem('pageTitle', '[{"pageTitle":""}]')
+                    }
+
+                    setStoredTabs(storedTabsJson);
+                    setUsingTab(usingTabsNumber);
+
+                    setUrl(storedTabsJson[usingTabsNumber].url);
+                    setPageTitle(titleJson[usingTabsNumber].pageTitle);
+                    
+                } catch (error) {
+                    console.error('Error loading tabs:', error);
                 }
+            };
 
-                setUrl(storedTabsJson[usingTabsNumber].url); // URL 업데이트
+            loadSetting();
+            loadTabs();
+            openWebView();
+            return (() => {
 
-            } catch (error) {
-                console.error('Error loading tabs:', error);
-            }
-        }
+            })
+        }, []) 
+    ); // 설정 및 탭 정보 불러오기 
 
-        loadTabs(); // 컴포넌트 마운트 시 탭 로드
-    }, []); // 저장된 탭 정보 로드 
-
-    useEffect(() => {
-        if (!navstate) return; // navstate가 null인 경우 처리 중지
-
-        const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (navstate.canGoBack) {
-                webViewRef.current?.goBack(); // 웹뷰에서 뒤로가기
+    useFocusEffect(
+    useCallback(() => {
+        const onBackPress = () => {
+            if (navstate?.canGoBack) {
+                webViewRef.current?.goBack();
                 return true;
             } else {
                 setOpen(false); // 웹뷰 닫기
-                return false; // 기본 뒤로가기 동작 수행
+                return false;   // 앱이 닫히거나 이전 화면으로 이동
             }
-        })
-
-        return () => {
-            subscription.remove(); // 컴포넌트 언마운트 시 이벤트 리스너 제거
         };
 
-    }, [navstate?.canGoBack]);
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+        return () => {
+            subscription.remove(); // 포커스가 벗어나면 리스너 제거
+        };
+    }, [navstate?.canGoBack])
+    );
 
     useEffect(() => {
         if (!navstate) return; // navstate가 null인 경우 처리 중지
@@ -244,26 +257,9 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         }
     }, [isFocused]);
 
-    // URL이 about:blank이거나 비어있고 웹뷰가 로딩 중이지 않으면 웹뷰를 닫음
-    useEffect(() => { 
-        if ((url == 'about:blank') || (url == '') && !webViewLoading) {
-            setUrl('');
-            if (open == true) {
-                setOpen(false);
-            }
-        }
-    }, [url]);
-
     return (
         <View style={{ padding: 10, backgroundColor: '#eee', borderRadius: 8, width: width, height: height * 0.89}}>
 
-        {!open &&<TouchableOpacity 
-            onPress={() => openWebView()} 
-            style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 5, marginTop: 10 }} 
-        >       
-                <Text style={{ fontSize: 16, textAlign: 'center' }}>클릭하여 시작하기</Text>
-        </TouchableOpacity> }
-        
         {/* 새로고침 버튼 */}
         {open && <TouchableOpacity
             onPress={() => {
@@ -276,8 +272,12 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
             <Text style={{ fontSize: 16, textAlign: 'center' }}>새로고침</Text>
         </TouchableOpacity>}
 
-        {open && (
+        {storedTabs.map((tab, index) => 
+            (index === usingtab) ? (
             <WebView 
+                mixedContentMode='always'
+                key={index}
+                originWhitelist={['*']}
                 pullToRefreshEnabled={true} // 새로고침 가능
                 ref={webViewRef} // 웹뷰 참조
                 nestedScrollEnabled={true} // 스크롤 가능
@@ -321,19 +321,28 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
 
                     console.log("event.nativeEvent.data:", event.nativeEvent.data);
                 }}
-                onLoadEnd={() => {
+                onLoadEnd={({nativeEvent}) => {
 
                     // // 로드가 끝나면 html 문서 전체를 가져오기
                     // webViewRef.current?.injectJavaScript(`window.ReactNativeWebView.postMessage("HTML:" + document.documentElement.outerHTML);`);
 
                     setIsTranslationAPICompleted(false);
                     getParsedElementFromWebView(webViewRef);
+
+                    if (nativeEvent.title) {
+                        setPageTitle(nativeEvent.title);
+                    }
                 }}
-                onError={(error) => {
-                    console.error("WebView error:", error);
+                onError={(syntheticEvent) => {
+                    const { nativeEvent } = syntheticEvent;
+                    console.error('WebView error:');
+                    console.error('  description:', nativeEvent.description);
+                    console.error('errorCode:', nativeEvent.code);
+                    console.error('domain:', nativeEvent.domain);
+                    console.error('url:', nativeEvent.url);
                 }}
             />
-        )}
+        ): null)}
     </View>
   );
 }
