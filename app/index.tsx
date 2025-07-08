@@ -26,8 +26,9 @@ export default function Index() {
 	const navigation = useNavigation(); // 네비게이션 훅
 
 	const [bookmarks, setBookmarks] = useState([
-		{ id: '1', title: 'Google', url: 'https://www.google.com' },
-		{ id: '2', title: 'GitHub', url: 'https://www.github.com' },
+		{ id: '1', title: '하멜른', url: 'https://syosetu.org' },
+		{ id: '2', title: '소설가가 되자', url: 'https://syosetu.com' },
+		{ id: '3', title: '카쿠요무', url: 'https://kakuyomu.jp' },
 	]);
 
 	useEffect(() => {
