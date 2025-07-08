@@ -52,7 +52,14 @@ export default function URLInput({ url, setUrl, pageTitle, setPageTitle }: URLIn
                 onChangeText={setTempValue} // update URL state on change
                 onSubmitEditing={() => {
                     if (tempValue.trim() !== '') {
-                        setUrl(tempValue); // set URL state
+
+                        // 만약, URL이 http:// 또는 https://로 시작하지 않는다면, 자동으로 추가
+                        let tempURL = tempValue.trim();
+                        if (!tempValue.startsWith('http://') && !tempValue.startsWith('https://')) {
+                            tempURL = 'http://' + tempValue; // http://를 추가
+                        }
+
+                        setUrl(tempURL); // set URL state
                         setTempValue(''); // clear input field;
                     }
                 }}

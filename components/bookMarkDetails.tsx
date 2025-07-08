@@ -30,7 +30,7 @@ export default function BookMarkDetails({
     const handleAddBookmark = () => {
         if (newTitle.trim() && newUrl.trim()) {
             const newBookmark: BookMark = {
-                id: Date.now().toString(), // 간단한 ID 생성
+                id: Date.now().toString(),
                 title: newTitle,
                 url: newUrl,
             };
