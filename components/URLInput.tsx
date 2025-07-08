@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { router, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// style
+import { URLInputStyle } from '@/style/URLInputStyle';
+
 interface URLInputProps {
     url: string; // URL state
     setUrl: (url: string) => void; // function to set URL state
@@ -40,11 +43,11 @@ export default function URLInput({ url, setUrl, pageTitle, setPageTitle }: URLIn
     }
 
     return (
-        <View style={{ padding: 10,  backgroundColor: '#eee', borderRadius: 8, width: width, flexDirection: 'row' }}>
+        <View style={URLInputStyle.total_container}>
             <TextInput 
                 selectTextOnFocus={true} // 텍스트 선택 가능
                 placeholder="URL을 입력하세요..." 
-                style={{ borderWidth: 1, padding: 5, marginTop: 10, color: 'black', width: width * 0.7 }} // text input for URL
+                style={URLInputStyle.text_input}
                 value={tempValue} // url state
                 onChangeText={setTempValue} // update URL state on change
                 onSubmitEditing={() => {

@@ -8,6 +8,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from '@react-navigation/native';
 import { useFocusEffect } from 'expo-router';
 
+// style
+import { outputLayoutStyle } from '@/style/outputLayoutStyle';
+
 interface outputLayoutProps {
     apiKey: string;
     setApiKey: (key: string) => void;
@@ -258,7 +261,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
     }, [isFocused]);
 
     return (
-        <View style={{ padding: 10, backgroundColor: '#eee', borderRadius: 8, width: width, height: height * 0.89}}>
+        <View style={outputLayoutStyle.total_container}>
 
         {/* 새로고침 버튼 */}
         {open && <TouchableOpacity
@@ -283,7 +286,15 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                 nestedScrollEnabled={true} // 스크롤 가능
                 javaScriptEnabled={true} // 자바스크립트 사용 가능
                 source={{ uri: url }} // URL을 웹뷰에 로드
-                style={{ width: '100%', height: height * 0.75}}
+                style={{ width: '100%', height: height * 0.75 }}
+                
+                // 다크 모드
+                injectedJavaScript={`
+                    document.body.style.backgroundColor = '#2e2e2e';
+                    document.body.style.color = '#d4d4d4';
+                    true;
+                `}
+
                 onNavigationStateChange={(newState) => {
                     setNavState(newState);
                 }}
