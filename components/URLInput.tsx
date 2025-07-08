@@ -55,7 +55,7 @@ export default function URLInput({ url, setUrl, pageTitle, setPageTitle }: URLIn
                         setUrl(tempValue); // set URL state
                         setTempValue(''); // clear input field;
                     }
-                }} // submit URL on enter
+                }}
                 returnKeyType="done"
             />
             <TouchableOpacity

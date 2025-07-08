@@ -1,10 +1,14 @@
 import { View } from "react-native";
-import URLInput from "@/components/URLInput";
-import OutputLayout from "@/components/outputLayout";
 import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
 import Constants from "expo-constants";
 
+// components
+import URLInput from "@/components/URLInput";
+import OutputLayout from "@/components/outputLayout";
+import BookMarkDetails from "@/components/bookMarkDetails";
+
+// style
 import { indexStyle } from "../style/indexStyle.js";
 
 interface ManifestExtra {
@@ -21,6 +25,11 @@ export default function Index() {
 	const [pageTitle, setPageTitle] = useState(''); // 페이지 타이틀 상태 
 	const navigation = useNavigation(); // 네비게이션 훅
 
+	const [bookmarks, setBookmarks] = useState([
+		{ id: '1', title: 'Google', url: 'https://www.google.com' },
+		{ id: '2', title: 'GitHub', url: 'https://www.github.com' },
+	]);
+
 	useEffect(() => {
 		navigation.setOptions({ title: "Cafe" }); // 제목 설정 
 	}, [navigation]);
@@ -31,9 +40,22 @@ export default function Index() {
 		>
 			<URLInput
 				url={url}
-				setUrl={setUrl} 
+				setUrl={setUrl}
 				pageTitle={pageTitle}
 				setPageTitle={setPageTitle}
+			/>
+			<BookMarkDetails
+				bookmarks={bookmarks}
+				onSelect={(bookmark) => {
+					setUrl(bookmark.url);
+					setPageTitle(bookmark.title);
+				}}
+				onDelete={(id) => {
+					setBookmarks((prev) => prev.filter((b) => b.id !== id));
+				}}
+				onAdd={(bookmark) => {
+					setBookmarks((prev) => [...prev, bookmark]);
+				}}
 			/>
 			<OutputLayout 
 				apiKey={apiKey}
