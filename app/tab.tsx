@@ -1,5 +1,5 @@
 import InnerHeader from "@/components/innerHeader";
-import { ScrollView, TouchableOpacity, Text, Dimensions } from "react-native";
+import { ScrollView, TouchableOpacity, Text, Dimensions, View } from "react-native";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -51,6 +51,18 @@ export default function Tabs() {
         await AsyncStorage.setItem('tabs', JSON.stringify(newTabList));
     }
 
+    async function deleteTabsButtonHandler(index: number) {3
+        
+        const newTitleList = [...titleList.slice(0, index), ...titleList.slice(index + 1)];
+        const newTabList = [...tabList.slice(0, index), ...tabList.slice(index + 1)];
+
+        setTitleList(newTitleList);
+        setTabList(newTabList);
+
+        await AsyncStorage.setItem('pageTitle', JSON.stringify(newTitleList));
+        await AsyncStorage.setItem('tabs', JSON.stringify(newTabList));
+    }
+
     async function tabsButtonHandler(index: number) {
         await AsyncStorage.setItem("usingTabs", String(index));
         router.back();
@@ -62,17 +74,30 @@ export default function Tabs() {
         >
             <InnerHeader />
             {titleList.map((pageTitle, index) => (
-                <TouchableOpacity
+                <View 
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
                     key={index}
-                    onPress={() => tabsButtonHandler(index)}
-                    style={{ padding: 10, backgroundColor: '#eee', marginBottom: 10, width: width * 0.9 }}
+                >
+                    <TouchableOpacity
+                        onPress={() => tabsButtonHandler(index)}
+                        style={{ padding: 10, backgroundColor: '#eee', marginBottom: 10, width: width * 0.75 }}
+                        >
+                        <Text
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                            style={{ width: '100%' }}
+                        >{pageTitle.pageTitle}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={{ padding: 10, backgroundColor: '#eee', marginBottom: 10, width: width * 0.15, marginLeft: 5, alignItems: 'center' }}
+                        onPress={() => deleteTabsButtonHandler(index)}
                     >
                     <Text
                         numberOfLines={1}
                         ellipsizeMode="tail"
-                        style={{ width: width * 0.7 }}
-                    >{pageTitle.pageTitle}</Text>
-                </TouchableOpacity>
+                    >삭제</Text>
+                    </TouchableOpacity>
+                </View>
             ))}
             <TouchableOpacity
                 onPress={addTabsButtonHandler}
