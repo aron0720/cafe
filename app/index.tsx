@@ -16,7 +16,8 @@ interface ManifestExtra {
 };
 
 export default function Index() {
-	const [url, setUrl] = useState(""); // URL state
+	const initPage = "https://en-portal.g.kuroco-img.app/v=1750749084/files/user/character/manhattancafe/manhattancafe_01.png";
+	const [url, setUrl] = useState("");
 	const [prompt, setPrompt] = useState("다음과 같은 텍스트 리스트를 한국어로 번역하세요. # 어떤 추가 문구 없이 리스트만을 출력하세요. 개행문자 ||는 리스트의 형식에 포함됩니다. 절대로 리스트의 형식이 손상되거나 숫자가 변해서는 안됩니다!!! 되도록이면 한국어만 포함하세요.");
 	const [additionalPrompt, setAdditionalPrompt] = useState(""); // 추가 프롬프트 상태
 	const [apiKey, setApiKey] = useState<string>(
@@ -35,6 +36,16 @@ export default function Index() {
 		navigation.setOptions({ title: "Cafe" }); // 제목 설정 
 	}, [navigation]);
 
+	useEffect(() => {
+		if (!url) {
+			setUrl(initPage); // 초기 URL 설정
+		}
+	}, [url, initPage]);
+
+	useEffect(() => {
+		console.log("북마크가 업데이트되었습니다:", bookmarks);
+	}, [bookmarks])
+
 	return (
 		<View
 			style={indexStyle.total_container}
@@ -45,6 +56,7 @@ export default function Index() {
 				pageTitle={pageTitle}
 				setPageTitle={setPageTitle}
 			/>
+
 			<BookMarkDetails
 				bookmarks={bookmarks}
 				onSelect={(bookmark) => {
@@ -58,6 +70,7 @@ export default function Index() {
 					setBookmarks((prev) => [...prev, bookmark]);
 				}}
 			/>
+			
 			<OutputLayout 
 				apiKey={apiKey}
 				setApiKey={setApiKey}

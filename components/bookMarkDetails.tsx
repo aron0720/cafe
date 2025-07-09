@@ -14,7 +14,7 @@ interface BookMarkDetailsProps {
     bookmarks: BookMark[];
     onSelect: (bookmark: BookMark) => void;
     onDelete: (id: string) => void;
-    onAdd: (bookmark: BookMark) => void; // 북마크 추가 함수
+    onAdd: (bookmark: BookMark) => void;
 }
 
 export default function BookMarkDetails({
@@ -23,7 +23,7 @@ export default function BookMarkDetails({
     onDelete,
     onAdd,
 }: BookMarkDetailsProps) {
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [newUrl, setNewUrl] = useState('');
 
@@ -77,20 +77,34 @@ export default function BookMarkDetails({
                         <FlatList
                             data={bookmarks}
                             keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <View style={bookMarkDetailsStyle.bookmarkItem}>
-                                    <TouchableOpacity onPress={() => {
-                                        onSelect(item);
-                                        setIsExpanded(false);
-                                    }} style={{ marginRight: 10 }}>
-                                        <Text style={bookMarkDetailsStyle.bookmarkTitle}>{item.title}</Text>
-                                        <Text style={bookMarkDetailsStyle.bookmarkUrl}>{item.url}</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => onDelete(item.id)} style={bookMarkDetailsStyle.deleteButton}>
-                                        <Text style={bookMarkDetailsStyle.deleteButtonText}>삭제</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
+                            renderItem={({ item }) => {
+                                if (!item || !item.url) {
+
+                                    // 유효하지 않은 북마크 아이템 처리
+                                    console.error("Invalid bookmark item:", item);
+                                    return null;
+                                }
+                                return (
+                                    <View style={bookMarkDetailsStyle.bookmarkItem}>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                onSelect(item);
+                                                setIsExpanded(false);
+                                            }}
+                                            style={{ marginRight: 10 }}
+                                        >
+                                            <Text style={bookMarkDetailsStyle.bookmarkTitle}>{item.title}</Text>
+                                            <Text style={bookMarkDetailsStyle.bookmarkUrl}>{item.url}</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => onDelete(item.id)}
+                                            style={bookMarkDetailsStyle.deleteButton}
+                                        >
+                                            <Text style={bookMarkDetailsStyle.deleteButtonText}>삭제</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                );
+                            }}
                         />
                     )}
                 </View>

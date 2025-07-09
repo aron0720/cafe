@@ -150,7 +150,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
         // 가장 마지막의 translationMap element는 아직 갱신이 되지 않았을 수 있기 때문에, 맨 마지막의 원소는 제외하고 전달.
         // 단, 이때, 마지막의 원소를 제외했을 때 비었다면 return
         const modifiedTranslationMap = translationMap.slice(0, -1);
-        if (webViewRef.current){
+        if (webViewRef.current) {
             updateTranslationMapToWebView(modifiedTranslationMap, webViewRef, parsedElements);
         }
         else console.log("webViewRef.current가 null입니다.");
@@ -175,7 +175,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
             setParsedElements([]);
         }
 
-        console.log("pasedele",parsedElements)
+        console.log("pasedele", parsedElements)
     }, [isTranslationAPICompleted]);
 
     // parsedElements 상태가 변경될 때 마다 API를 호출해 번역 저장
@@ -286,6 +286,7 @@ export default function OutputLayout({ apiKey, setApiKey, prompt, setPrompt, add
                 nestedScrollEnabled={true} // 스크롤 가능
                 javaScriptEnabled={true} // 자바스크립트 사용 가능
                 source={{ uri: url }} // URL을 웹뷰에 로드
+                allowFileAccess={true} // 파일 접근 허용
                 style={{ width: '100%', height: height * 0.75 }}
                 
                 // 다크 모드
